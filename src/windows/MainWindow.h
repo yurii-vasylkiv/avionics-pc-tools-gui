@@ -5,8 +5,12 @@
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
+protected:
+    void closeEvent(QCloseEvent *event) override;
 public:
     MainWindow();
+signals:
+    void onExitButtonPressed();
 };
 
 

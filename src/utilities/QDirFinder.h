@@ -25,7 +25,10 @@ public:
     void addSpecialTarget(const QString & targetName, int searchDepthLevel);
     void setSingleResult(bool findOne);
     void setMatchExactly(bool flag);
+    void setExtension(const QString & extension);
+
     void search();
+    void interrupt();
 
 Q_SIGNALS:
     void onResult(const QString & result);
@@ -39,6 +42,7 @@ private:
     Qt::CaseSensitivity mGlobalTargetSensitivity;
     QDir::Filters mGlobalTargetFilters;
     QStringList mExcludeTargets;
+    QString mExtension;
     QMap<QString, int> mSpecialTargets;
     bool mFindOneOnly;
     bool mIsJobDone = false;

@@ -14,11 +14,12 @@ class DebuggingToolsWidget : public QGroupBox
 public:
     DebuggingToolsWidget(QWidget *parent = nullptr);
     void resetRemoteTarget();
+    void uploadToRemoteTarget(const QString & executable);
 signals:
     void openOCDExecutableFileChanged(const QString & path);
     void openOCDBoardConfigFileChanged(const QString & path);
     void armGDBChanged(const QString & path);
-
+    void interruptFinders();
 private:
     void detectOpenOCDExecutableFile();
     void detectOpenOCDBoardConfigFile();

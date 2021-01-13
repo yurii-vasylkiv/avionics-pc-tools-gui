@@ -17,6 +17,7 @@
 #include <QSerialPortInfo>
 #include <iostream>
 #include <QGridLayout>
+#include <QDebug>
 
 SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(parent)
 {
@@ -309,7 +310,14 @@ void SerialPortSelectorWidget::writeData(const QByteArray &data)
 {
     if(isSerialPortOpen())
     {
-        mSerialBackend.write(data + "\r");
+        for (auto i = 0 ; i < data.size(); i++)
+        {
+            std::string sym(1, data[i]);
+            mSerialBackend.write(sym.c_str());
+            QThread::msleep(1);
+        }
+        mSerialBackend.write("\r");
+        mSerialBackend.flush();
     }
     else
     {
@@ -329,7 +337,7 @@ bool SerialPortSelectorWidget::isSerialPortOpen() const
 
 void SerialPortSelectorWidget::emitSerialPortError()
 {
-    emit onDataReceived(QByteArray::fromStdString("Error: No serial port is open! Abort."));
+    emit onDataReceived(QByteArray::fromStdString("Error: No serial port is open! Abort."), true);
 }
 
 

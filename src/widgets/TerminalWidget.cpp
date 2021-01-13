@@ -29,10 +29,12 @@ QWidget(parent)
 
     mCustomSelection.format = QTextCharFormat();
     mCustomSelection.format.setBackground(Qt::blue);
-
-    mConsoleText->setStyleSheet("QTextEdit { background: black; font-family: consolas; color: yellow; font-size: 14px }");
     mConsoleText->setContentsMargins(2, 0, 2, 2);
-    mConsoleText->setText(mUser + mCommandDelimiter );
+
+    mConsoleText->setTextColor(Qt::white);
+    mConsoleText->setBold(true);
+    mConsoleText->append(mUser + mCommandDelimiter );
+
     mConsoleText->moveCursor(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
     mConsoleText->setAcceptRichText(true);
 
@@ -59,28 +61,27 @@ QWidget(parent)
         else
         {
             emit onRequest(mCommandHistory.last());
-//            emit onBeginResponse("Command " + mCommandHistory.last() + " is not a recognized internal command.");
-//            emit onEndResponse();
         }
     });
 
-    connect(this, static_cast<void (TerminalWidget::*)(QByteArray)>(&TerminalWidget::onBeginResponse), this, [=](QByteArray data)
+    connect(this, static_cast<void (TerminalWidget::*)(QByteArray, bool)>(&TerminalWidget::onBeginResponse), this, [=](QByteArray data, bool isError)
     {
-        mConsoleText->setText(mConsoleText->toPlainText());
-        mConsoleText->append(QString::fromStdString(data.toStdString()));
+        isError ? mConsoleText->setTextColor(Qt::red) : mConsoleText->setTextColor(Qt::yellow);
+        mConsoleText->append(isError ? '\n' + QString::fromStdString(data.toStdString()) : QString::fromStdString(data.toStdString()));
         mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
     }, Qt::QueuedConnection);
 
-    connect(this, static_cast<void (TerminalWidget::*)(const QString&)>(&TerminalWidget::onBeginResponse), this, [=](const QString & data)
+    connect(this, static_cast<void (TerminalWidget::*)(const QString&, bool)>(&TerminalWidget::onBeginResponse), this, [=](const QString & data, bool isError)
     {
-        mConsoleText->setText(mConsoleText->toPlainText());
-        mConsoleText->append(data);
+        isError ? mConsoleText->setTextColor(Qt::red) : mConsoleText->setTextColor(Qt::yellow);
+        mConsoleText->append(isError ? '\n' + data : data);
         mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
     }, Qt::QueuedConnection);
 
     connect(this, &TerminalWidget::onEndResponse, this, [=](bool insertNewLine)
     {
-        mConsoleText->setText(mConsoleText->toPlainText() + (insertNewLine ? "\n" : "") + mUser + mCommandDelimiter);
+        mConsoleText->setTextColor(Qt::white);
+        mConsoleText->append((insertNewLine ? "\n" : "") + mUser + mCommandDelimiter);
         mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
 
         mCommandHistory.append("");
@@ -163,7 +164,7 @@ void TerminalWidget::handleKnownCommands(const QString &command)
 
     if(command == "clear")
     {
-        mConsoleText->setText("");
+        mConsoleText->clear();
         emit onEndResponse(false);
         return;
     }
@@ -182,9 +183,10 @@ void TerminalWidget::handleKnownCommands(const QString &command)
     }
 }
 
+
 void TerminalWidget::goToNextLine()
 {
-    mConsoleText->setText(mConsoleText->toPlainText() + '\n' + mUser + mCommandDelimiter);
+    mConsoleText->append('\n' + mUser + mCommandDelimiter);
     mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
     mCommandHistoryIndex = mCommandHistory.size() - 1;
     mConsoleText->setReadOnly(false);
@@ -289,7 +291,17 @@ void TerminalWidget::handleDownKeyEvent()
     if ( mCommandHistoryIndex + 1 < mCommandHistory.size() )
     {
         mCommandHistoryIndex++;
-        mConsoleText->setText (text.mid (0, pos ) + mCommandHistory.at (mCommandHistoryIndex ) ) ;
+
+        if(!text.mid(pos).isEmpty())
+        {
+            QTextCursor cursor = mConsoleText->textCursor();
+            cursor.setPosition(pos, QTextCursor::MoveMode::MoveAnchor);
+            cursor.setPosition(text.size(), QTextCursor::MoveMode::KeepAnchor);
+            cursor.removeSelectedText();
+            mConsoleText->setTextCursor(cursor);
+        }
+
+        mConsoleText->append ( mCommandHistory.at (mCommandHistoryIndex ) ) ;
     }
 
     mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
@@ -298,12 +310,22 @@ void TerminalWidget::handleDownKeyEvent()
 void TerminalWidget::handleUpKeyEvent()
 {
     auto text = mConsoleText->toPlainText();
-    auto pos = text.lastIndexOf (mCommandDelimiter) + mCommandDelimiter.size() ;
+    auto pos = text.lastIndexOf (mCommandDelimiter) + mCommandDelimiter.size();
 
     if ( mCommandHistoryIndex - 1 >= 0 )
     {
         mCommandHistoryIndex--;
-        mConsoleText->setText (text.mid (0, pos ) + mCommandHistory.at (mCommandHistoryIndex ) ) ;
+
+        if(!text.mid(pos).isEmpty())
+        {
+            QTextCursor cursor = mConsoleText->textCursor();
+            cursor.setPosition(pos, QTextCursor::MoveMode::MoveAnchor);
+            cursor.setPosition(text.size(), QTextCursor::MoveMode::KeepAnchor);
+            cursor.removeSelectedText();
+            mConsoleText->setTextCursor(cursor);
+        }
+
+        mConsoleText->append(mCommandHistory.at (mCommandHistoryIndex ) ) ;
     }
 
     mConsoleText->moveCursor(QTextCursor::End, QTextCursor::MoveAnchor);
@@ -328,7 +350,6 @@ bool TerminalWidget::handleLeftKeyEvent(QEvent *event)
 bool TerminalWidget::handleBackspaceKeyEvent(QEvent *event)
 {
     auto text = mConsoleText->toPlainText();
-    qDebug() << text;
     if(text.mid(text.size() - mCommandDelimiter.size()) != mCommandDelimiter)
     {
         // allow removing characters till the end of the current line ONLY
@@ -362,6 +383,13 @@ void TerminalWidget::copyCurrentSelectionToTheClipBoard()
     QApplication::clipboard()->setText(text4Clipboard);
 }
 
+
+MyTextEdit::MyTextEdit(QWidget *parent) : QTextEdit(parent)
+{
+    mBoldStyle = "MyTextEdit { background: black; font-family: consolas; font-weight: 2000; color: yellow; font-size: 14px }";
+    mRegularStyle = "MyTextEdit { background: black; font-family: consolas; font-weight: normal; color: yellow; font-size: 14px }";
+    setStyleSheet(mRegularStyle);
+}
 
 void MyTextEdit::mousePressEvent(QMouseEvent *event)
 {
@@ -400,5 +428,31 @@ void MyTextEdit::mouseMoveEvent(QMouseEvent *event)
     }
 
     QTextEdit::mouseMoveEvent(event);
+}
+
+void MyTextEdit::append(const QString &text)
+{
+    QTextEdit::append(text);
+    auto posBeforeNewLine = toPlainText().lastIndexOf('\n', -1);
+    if(posBeforeNewLine != -1)
+    {
+        QTextCursor cursor = textCursor();
+        cursor.setPosition(posBeforeNewLine, QTextCursor::MoveMode::MoveAnchor);
+        cursor.setPosition(posBeforeNewLine + 1, QTextCursor::MoveMode::KeepAnchor);
+        cursor.removeSelectedText();
+        setTextCursor(cursor);
+    }
+}
+
+void MyTextEdit::setBold(bool enable)
+{
+    if(enable)
+    {
+        setStyleSheet(mBoldStyle);
+    }
+    else
+    {
+        setStyleSheet(mRegularStyle);
+    }
 }
 

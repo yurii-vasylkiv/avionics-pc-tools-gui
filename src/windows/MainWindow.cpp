@@ -11,12 +11,15 @@
 #include "widgets/TerminalWidget.h"
 #include "widgets/SerialPortSelectorWidget.h"
 #include "widgets/DebuggingToolsWidget.h"
+#include "widgets/FlightEmulationWidget.h"
 
 MainWindow::MainWindow()
 {
     setWindowTitle("UMSATS Avionics Flight-Computer GUI Controller");
 
     auto terminal = new TerminalWidget();
+    auto emulator = new FlightEmulationWidget();
+
     auto confWidget = new QWidget;
     auto confRoot = new QVBoxLayout;
     confWidget->setLayout(confRoot);
@@ -24,6 +27,7 @@ MainWindow::MainWindow()
     auto debuggingTools = new DebuggingToolsWidget();
     confRoot->addWidget(serialPortConf);
     confRoot->addWidget(debuggingTools);
+    confRoot->addWidget(emulator);
 
     auto terminalDock = new QDockWidget(this);
     auto confDock = new QDockWidget(this);
@@ -37,10 +41,10 @@ MainWindow::MainWindow()
     addDockWidget(Qt::TopDockWidgetArea, confDock);
     addDockWidget(Qt::BottomDockWidgetArea, terminalDock);
 
-    connect(serialPortConf, &SerialPortSelectorWidget::onDataReceived, [=](QByteArray data)
+    connect(serialPortConf, &SerialPortSelectorWidget::onDataReceived, [=](QByteArray data, bool isError)
     {
-        emit terminal->onBeginResponse(data);
-        emit terminal->onEndResponse();
+        emit terminal->onBeginResponse(data, isError);
+        emit terminal->onEndResponse(true);
     });
 
     connect(terminal, &TerminalWidget::onRequest, [=](const QString & data)
@@ -59,4 +63,16 @@ MainWindow::MainWindow()
             serialPortConf->emitSerialPortError();
         }
     });
+
+
+    connect(this, &MainWindow::onExitButtonPressed, [=]
+    {
+        emit debuggingTools->interruptFinders();
+    });
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    emit onExitButtonPressed();
+    QWidget::closeEvent(event);
 }

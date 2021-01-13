@@ -18,7 +18,7 @@ public:
     void emitSerialPortError();
 
 signals:
-    void onDataReceived(QByteArray data);
+    void onDataReceived(QByteArray data, bool isError = false);
 public slots:
     void writeData(const QByteArray & data);
 private:

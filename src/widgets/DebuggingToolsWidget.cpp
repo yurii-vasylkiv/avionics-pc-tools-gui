@@ -71,10 +71,28 @@ DebuggingToolsWidget::DebuggingToolsWidget(QWidget *parent) : QGroupBox(parent)
 
     connect(specifyArmGDBBtn, &QPushButton::released, [=]
     {
-        QDir dir (mArmGDBTextEdit->text().left(mArmGDBTextEdit->text().lastIndexOf('\\')));
+        auto rootDirectory = QDir::homePath();
+
+        if(!mArmGDBTextEdit->text().isEmpty())
+        {
+            QDir dir (mArmGDBTextEdit->text().left(mArmGDBTextEdit->text().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
+
+        if(!mArmGDBTextEdit->placeholderText().isEmpty())
+        {
+            QDir dir (mArmGDBTextEdit->placeholderText().left(mArmGDBTextEdit->placeholderText().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
 
         auto file = QFileDialog::getOpenFileName(this,
-                                                 "Choose ARM-GDB executable...", mArmGDBTextEdit->text().isEmpty() ? QDir::homePath() : (dir.exists() ? dir.path() : QDir::homePath() ),
+                                                 "Choose ARM-GDB executable...", rootDirectory,
                                                  QString("EXECUTABLE FILE (*.exe)"),
                                                  {}, QFileDialog::DontUseNativeDialog);
         if (file == nullptr)
@@ -86,10 +104,29 @@ DebuggingToolsWidget::DebuggingToolsWidget(QWidget *parent) : QGroupBox(parent)
 
     connect(specifyOpenOCDExec, &QPushButton::released, [=]
     {
-        QDir dir (mOpenOCDExecTextEdit->text().left(mOpenOCDExecTextEdit->text().lastIndexOf('\\')));
+        auto rootDirectory = QDir::homePath();
+
+        if(!mOpenOCDExecTextEdit->text().isEmpty())
+        {
+            QDir dir (mOpenOCDExecTextEdit->text().left(mOpenOCDExecTextEdit->text().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
+
+        if(!mOpenOCDExecTextEdit->placeholderText().isEmpty())
+        {
+            QDir dir (mOpenOCDExecTextEdit->placeholderText().left(mOpenOCDExecTextEdit->placeholderText().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
+
 
         auto file = QFileDialog::getOpenFileName(this,
-                                                 "Choose OpenOCD executable...", mOpenOCDExecTextEdit->text().isEmpty() ? QDir::homePath() : (dir.exists() ? dir.path() : QDir::homePath() ),
+                                                 "Choose OpenOCD executable...", rootDirectory,
                                                  QString("EXECUTABLE FILE (*.exe)"),
                                                  {}, QFileDialog::DontUseNativeDialog);
 
@@ -102,10 +139,28 @@ DebuggingToolsWidget::DebuggingToolsWidget(QWidget *parent) : QGroupBox(parent)
 
     connect(specifyOpenOCDBoardConfig, &QPushButton::released, [=]
     {
-        QDir dir (mOpenOCDBoardConfigTextEdit->text().left(mOpenOCDBoardConfigTextEdit->text().lastIndexOf('\\')));
+        auto rootDirectory = QDir::homePath();
+
+        if(!mOpenOCDBoardConfigTextEdit->text().isEmpty())
+        {
+            QDir dir (mOpenOCDBoardConfigTextEdit->text().left(mOpenOCDBoardConfigTextEdit->text().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
+
+        if(!mOpenOCDBoardConfigTextEdit->placeholderText().isEmpty())
+        {
+            QDir dir (mOpenOCDBoardConfigTextEdit->placeholderText().left(mOpenOCDBoardConfigTextEdit->placeholderText().lastIndexOf('\\')));
+            if(dir.exists())
+            {
+                rootDirectory = dir.path();
+            }
+        }
 
         auto file = QFileDialog::getOpenFileName(this,
-                                                 "Choose OpenOCD board config file...", mOpenOCDBoardConfigTextEdit->text().isEmpty() ? QDir::homePath() : (dir.exists() ? dir.path() : QDir::homePath() ),
+                                                 "Choose OpenOCD board config file...", rootDirectory,
                                                  QString("CONFIG FILE (*.cfg)"),
                                                  {}, QFileDialog::DontUseNativeDialog);
 
@@ -151,6 +206,8 @@ void DebuggingToolsWidget::detectOpenOCDExecutableFile()
             mOpenOCDExecTextEdit->setPlaceholderText(result);
             emit openOCDExecutableFileChanged(result);
         });
+
+        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
     });
 }
 
@@ -184,6 +241,8 @@ void DebuggingToolsWidget::detectOpenOCDBoardConfigFile()
             mOpenOCDBoardConfigTextEdit->setPlaceholderText(result);
             emit openOCDBoardConfigFileChanged(result);
         });
+
+        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
     });
 }
 
@@ -216,9 +275,10 @@ void DebuggingToolsWidget::detectArmGdbExecutableFile()
             mArmGDBTextEdit->setPlaceholderText(result);
             emit armGDBChanged(result);
         });
+
+        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
     });
 }
-
 
 void DebuggingToolsWidget::resetRemoteTarget()
 {
@@ -278,3 +338,60 @@ void DebuggingToolsWidget::resetRemoteTarget()
     }
 }
 
+void DebuggingToolsWidget::uploadToRemoteTarget(const QString & executable)
+{
+    auto mOpenOCDProcess = new QProcess();
+    mOpenOCDProcess->setProgram(mOpenOCDExecTextEdit->text().isEmpty() ? mOpenOCDExecTextEdit->placeholderText() : mOpenOCDExecTextEdit->text());
+    mOpenOCDProcess->setNativeArguments("-f "  +  (mOpenOCDBoardConfigTextEdit->text().isEmpty() ? mOpenOCDBoardConfigTextEdit->placeholderText() : mOpenOCDBoardConfigTextEdit->text()));
+
+    connect(mOpenOCDProcess, &QProcess::readyReadStandardError, [=] {
+        std::cerr << mOpenOCDProcess->readAllStandardError().toStdString() << std::flush;
+    });
+
+    connect(mOpenOCDProcess, &QProcess::readyReadStandardOutput, [=] {
+        std::cout <<  mOpenOCDProcess->readAllStandardOutput().toStdString() << std::flush;
+    });
+
+    connect(mOpenOCDProcess, &QProcess::started, [=] {
+        std::cout << "OpenOCD has been started!" << std::endl;
+    });
+
+    connect(mOpenOCDProcess, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), [=] {
+        std::cout << "OpenOCD has finished!" << std::endl;
+    });
+
+
+    if(!mOpenOCDProcess->isOpen())
+    {
+        mOpenOCDProcess->start();
+    }
+
+
+    auto mGDBProcess = new QProcess();
+    mGDBProcess->setProgram(mArmGDBTextEdit->text().isEmpty() ? mArmGDBTextEdit->placeholderText() : mArmGDBTextEdit->text());
+    mGDBProcess->setNativeArguments(QString("-iex \"target remote tcp:localhost:3333\" -iex \"monitor program ") + executable + QString("\" -iex \"monitor reset init\" -iex \"disconnect\" -iex \"quit\""));
+
+    qDebug().noquote() << "gdb: "<< mGDBProcess->nativeArguments();
+
+    connect(mGDBProcess, &QProcess::readyReadStandardError, [=] {
+        std::cerr << mOpenOCDProcess->readAllStandardError().toStdString() << std::flush;
+    });
+
+    connect(mGDBProcess, &QProcess::readyReadStandardOutput, [=] {
+        std::cout << mOpenOCDProcess->readAllStandardOutput().toStdString() << std::flush;
+    });
+
+    connect(mGDBProcess, &QProcess::started, [=] {
+        std::cout <<  "GDB has been started!" << std::endl;
+    });
+
+    connect(mGDBProcess, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), [=] {
+        std::cout << "GDB has finished!" << std::endl;
+        mOpenOCDProcess->kill();
+    });
+
+    if(!mGDBProcess->isOpen())
+    {
+        mGDBProcess->start();
+    }
+}

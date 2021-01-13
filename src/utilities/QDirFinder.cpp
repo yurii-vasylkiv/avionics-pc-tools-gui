@@ -60,9 +60,18 @@ void QDirFinder::setMatchExactly(bool flag)
     isMatchExactly = flag;
 }
 
+void QDirFinder::setExtension(const QString &extension)
+{
+    mExtension = extension;
+}
+
+void QDirFinder::interrupt() {
+    mIsJobDone = true;
+}
+
 void QDirFinder::search()
 {
-    QDir const source(mPath);
+    QDir source(mPath);
     if (!source.exists())
         return;
 
@@ -70,7 +79,8 @@ void QDirFinder::search()
 
     for (int i = 0; i < folders.size(); i++)
     {
-        QString const& name = folders.at(i);
+
+        const auto & name = folders.at(i);
 
         auto fullPathName = (mPath + QDir::separator() + name).toStdString();
         auto fullPathNameQt = QString::fromStdString(fullPathName);
@@ -95,15 +105,34 @@ bool QDirFinder::recursive_search(const QString & currentTarget, int depth)
 
         if (isMatchExactly ? ( name == mGlobalTargetName ) : ( name.contains(mGlobalTargetName, mGlobalTargetSensitivity)) )
         {
-            // qDebug() << "[Thread]: Found - " << fullPathName;
-            emit onResult ( fullPathName );
-            if(mFindOneOnly)
+            if( !mExtension.isEmpty() )
             {
-                mIsJobDone = true;
-                return true;
+                if( name.contains(mExtension, mGlobalTargetSensitivity) )
+                {
+                    // qDebug() << "[Thread]: Found - " << fullPathName;
+                    emit onResult ( fullPathName );
+                    if(mFindOneOnly)
+                    {
+                        mIsJobDone = true;
+                        return true;
+                    }
+                    else {
+                        continue;
+                    }
+                }
             }
-            else {
-                continue;
+            else
+            {
+                // qDebug() << "[Thread]: Found - " << fullPathName;
+                emit onResult ( fullPathName );
+                if(mFindOneOnly)
+                {
+                    mIsJobDone = true;
+                    return true;
+                }
+                else {
+                    continue;
+                }
             }
         }
         else

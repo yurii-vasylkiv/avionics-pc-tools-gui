@@ -14,8 +14,10 @@ class MyTextEdit: public QTextEdit
 {
     Q_OBJECT
 public:
-    MyTextEdit(QWidget * parent = nullptr): QTextEdit(parent){};
+    MyTextEdit(QWidget * parent = nullptr);
     void mousePressEvent(QMouseEvent *event) override;
+    void append(const QString & text);
+    void setBold(bool enable);
 
 protected:
     void mouseMoveEvent(QMouseEvent *e) override;
@@ -27,6 +29,8 @@ Q_SIGNALS:
 
 private:
     bool isSelectionEnabled = false;
+    QString mRegularStyle;
+    QString mBoldStyle;
 };
 
 class TerminalWidget : public QWidget
@@ -35,18 +39,17 @@ class TerminalWidget : public QWidget
 public:
     TerminalWidget(QWidget * parent = nullptr);
     bool eventFilter(QObject *receiver, QEvent *event) override;
-
 Q_SIGNALS:
     void onRequest(const QString & command);
-    void onBeginResponse(const QString & data);
-    void onBeginResponse(QByteArray data);
+    void onBeginResponse(const QString & data, bool isError = false);
+    void onBeginResponse(QByteArray data, bool isError = false);
     void onEndResponse(bool insertNewLine = true);
     void resetRemoteTargetCommand ();
 private:
     Q_SIGNAL void onEnterPressed(QKeyEvent * event);
     Q_SIGNAL void onCommandInput(QKeyEvent * event);
 private:
-    bool isKnownCommand(const QString & command);
+    static bool isKnownCommand(const QString & command);
     void handleKnownCommands(const QString & command);
     void handleDownKeyEvent();
     void handleUpKeyEvent();
