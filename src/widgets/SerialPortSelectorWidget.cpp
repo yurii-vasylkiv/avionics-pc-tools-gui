@@ -320,6 +320,7 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
             {
                 connectButton->setText("DISCONNECT");
                 enablePortConfigs(false);
+                emit onDataReceived(QByteArray::fromStdString("Info: Connected to \"" + portCmb->currentText().toStdString() + "\""), true);
             }
         }
         else
@@ -329,6 +330,7 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
             {
                 connectButton->setText("CONNECT");
                 enablePortConfigs(true);
+                emit onDataReceived(QByteArray::fromStdString("Info: Disconnected from \"" + portCmb->currentText().toStdString() + "\""), true);
             }
         }
     });
