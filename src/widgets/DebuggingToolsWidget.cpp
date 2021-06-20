@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 #include <QtWidgets/QFileDialog>
 #include <QtCore/QDirIterator>
+#include <QtCore/QSettings>
 
 #include <QLabel>
 #include <QComboBox>
@@ -189,25 +190,36 @@ void DebuggingToolsWidget::detectOpenOCDExecutableFile()
 
     QTimer::singleShot(0, [this]
     {
-        mOpenOCDExecTextEdit->setPlaceholderText("Detecting...");
-
-        auto * finder = new QDirFinder(this);
-        finder->setGlobalSearchTargetName(OPENOCD_EXECUTABLE, Qt::CaseSensitivity::CaseSensitive);
-        finder->setMatchExactly(true);
-        finder->setSingleResult(true);
-
-        finder->setPath(SYSTEM_PATH);
-        finder->setTargetFilters(QDir::Files | QDir::Dirs);
-        finder->setGlobalSearchDepthLevel(10);
-        finder->search();
-
-        connect(finder, &QDirFinder::onResult, [=](const QString & result)
+        QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+        if( ! mySettings.value("mOpenOCDExecTextEdit").isNull ( ) )
         {
-            mOpenOCDExecTextEdit->setPlaceholderText(result);
-            emit openOCDExecutableFileChanged(result);
-        });
+            mOpenOCDExecTextEdit->setPlaceholderText( mySettings.value ( "mOpenOCDExecTextEdit" ).toString () );
+        }
+        else
+        {
+            mOpenOCDExecTextEdit->setPlaceholderText ( "Detecting..." );
 
-        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
+            auto * finder = new QDirFinder ( this );
+            finder->setGlobalSearchTargetName ( OPENOCD_EXECUTABLE, Qt::CaseSensitivity::CaseSensitive );
+            finder->setMatchExactly ( true );
+            finder->setSingleResult ( true );
+
+            finder->setPath ( SYSTEM_PATH );
+            finder->setTargetFilters ( QDir::Files | QDir::Dirs );
+            finder->setGlobalSearchDepthLevel ( 10 );
+            finder->search ( );
+
+            connect ( finder, &QDirFinder::onResult, [this] ( const QString & result )
+            {
+                mOpenOCDExecTextEdit->setPlaceholderText ( result );
+                emit openOCDExecutableFileChanged ( result );
+
+                QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+                mySettings.setValue("mOpenOCDExecTextEdit", result);
+            } );
+
+            connect ( this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt );
+        }
     });
 }
 
@@ -223,26 +235,37 @@ void DebuggingToolsWidget::detectOpenOCDBoardConfigFile()
 
     QTimer::singleShot(0, [this]
     {
-        mOpenOCDBoardConfigTextEdit->setPlaceholderText("Detecting...");
-
-        auto *finder = new QDirFinder(this);
-        finder->setGlobalSearchTargetName(OPENOCD_BOARD_CONFIG_FILE, Qt::CaseSensitivity::CaseSensitive);
-        finder->setMatchExactly(true);
-        finder->setSingleResult(true);
-
-        finder->setPath(SYSTEM_PATH);
-        finder->setTargetFilters(QDir::Files | QDir::Dirs);
-        finder->setGlobalSearchDepthLevel(10);
-        finder->search();
-
-
-        connect(finder, &QDirFinder::onResult, [=](const QString &result)
+        QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+        if( ! mySettings.value("mOpenOCDBoardConfigTextEdit").isNull ( ) )
         {
-            mOpenOCDBoardConfigTextEdit->setPlaceholderText(result);
-            emit openOCDBoardConfigFileChanged(result);
-        });
+            mOpenOCDBoardConfigTextEdit->setPlaceholderText ( mySettings.value ( "mOpenOCDBoardConfigTextEdit" ).toString () );
+        }
+        else
+        {
+            mOpenOCDBoardConfigTextEdit->setPlaceholderText ( "Detecting..." );
 
-        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
+            auto * finder = new QDirFinder ( this );
+            finder->setGlobalSearchTargetName ( OPENOCD_BOARD_CONFIG_FILE, Qt::CaseSensitivity::CaseSensitive );
+            finder->setMatchExactly ( true );
+            finder->setSingleResult ( true );
+
+            finder->setPath ( SYSTEM_PATH );
+            finder->setTargetFilters ( QDir::Files | QDir::Dirs );
+            finder->setGlobalSearchDepthLevel ( 10 );
+            finder->search ( );
+
+
+            connect ( finder, &QDirFinder::onResult, [ this ] ( const QString & result )
+            {
+                mOpenOCDBoardConfigTextEdit->setPlaceholderText ( result );
+                emit openOCDBoardConfigFileChanged ( result );
+
+                QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+                mySettings.setValue("mOpenOCDBoardConfigTextEdit", result);
+            } );
+
+            connect ( this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt );
+        }
     });
 }
 
@@ -258,25 +281,36 @@ void DebuggingToolsWidget::detectArmGdbExecutableFile()
 
     QTimer::singleShot(0, [this]
     {
-        mArmGDBTextEdit->setPlaceholderText("Detecting...");
-
-        auto *finder = new QDirFinder(this);
-        finder->setGlobalSearchTargetName(ARM_GDB_EXECUTABLE, Qt::CaseSensitivity::CaseSensitive);
-        finder->setMatchExactly(true);
-        finder->setSingleResult(true);
-
-        finder->setPath(SYSTEM_PATH);
-        finder->setTargetFilters(QDir::Files | QDir::Dirs);
-        finder->setGlobalSearchDepthLevel(10);
-        finder->search();
-
-        connect(finder, &QDirFinder::onResult, [=](const QString &result)
+        QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+        if( ! mySettings.value("mArmGDBTextEdit").isNull ( ) )
         {
-            mArmGDBTextEdit->setPlaceholderText(result);
-            emit armGDBChanged(result);
-        });
+            mArmGDBTextEdit->setPlaceholderText( mySettings.value ( "mArmGDBTextEdit" ).toString () );
+        }
+        else
+        {
+            mArmGDBTextEdit->setPlaceholderText ( "Detecting..." );
 
-        connect(this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt);
+            auto * finder = new QDirFinder ( this );
+            finder->setGlobalSearchTargetName ( ARM_GDB_EXECUTABLE, Qt::CaseSensitivity::CaseSensitive );
+            finder->setMatchExactly ( true );
+            finder->setSingleResult ( true );
+
+            finder->setPath ( SYSTEM_PATH );
+            finder->setTargetFilters ( QDir::Files | QDir::Dirs );
+            finder->setGlobalSearchDepthLevel ( 10 );
+            finder->search ( );
+
+            connect ( finder, &QDirFinder::onResult, [ this ] ( const QString & result )
+            {
+                mArmGDBTextEdit->setPlaceholderText ( result );
+                emit armGDBChanged ( result );
+
+                QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+                mySettings.setValue("mArmGDBTextEdit", result);
+            } );
+
+            connect ( this, &DebuggingToolsWidget::interruptFinders, finder, &QDirFinder::interrupt );
+        }
     });
 }
 

@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QProgressBar>
 #include <QLabel>
+#include <QtCore/QSettings>
 #include "utilities/QDirFinder.h"
 
 
@@ -220,23 +221,34 @@ void FlightEmulationWidget::detectFlightDataFile()
     {
         QTimer::singleShot(0, [=]
         {
-            mFlightDataFile->setPlaceholderText("Searching...");
-            auto *finder = new QDirFinder(this);
-            finder->setGlobalSearchTargetName(FLIGHT_DATA_FILE_NAME, Qt::CaseSensitivity::CaseSensitive);
-            finder->setExtension(FLIGHT_DATA_FILE_EXT);
-            finder->setMatchExactly(false);
-            finder->setSingleResult(true);
-            finder->setPath(drive.path());
-            finder->setTargetFilters(QDir::Files | QDir::Dirs);
-            finder->setGlobalSearchDepthLevel(15);
-            finder->search();
-
-            connect(finder, &QDirFinder::onResult, [=](const QString &result)
+            QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+            if( ! mySettings.value("mFlightDataFile").isNull ( ) )
             {
-                mFlightDataFile->setPlaceholderText(result);
-                emit flightDataFileChanged(result);
-                mEmulateBtn->setEnabled(true);
-            });
+                mFlightDataFile->setPlaceholderText( mySettings.value ( "mFlightDataFile" ).toString () );
+            }
+            else
+            {
+                mFlightDataFile->setPlaceholderText ( "Searching..." );
+                auto * finder = new QDirFinder ( this );
+                finder->setGlobalSearchTargetName ( FLIGHT_DATA_FILE_NAME, Qt::CaseSensitivity::CaseSensitive );
+                finder->setExtension ( FLIGHT_DATA_FILE_EXT );
+                finder->setMatchExactly ( false );
+                finder->setSingleResult ( true );
+                finder->setPath ( drive.path ( ) );
+                finder->setTargetFilters ( QDir::Files | QDir::Dirs );
+                finder->setGlobalSearchDepthLevel ( 15 );
+                finder->search ( );
+
+                connect ( finder, &QDirFinder::onResult, [ = ] ( const QString & result )
+                {
+                    mFlightDataFile->setPlaceholderText ( result );
+                    emit flightDataFileChanged ( result );
+                    mEmulateBtn->setEnabled ( true );
+
+                    QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+                    mySettings.setValue("mFlightDataFile", result);
+                } );
+            }
         });
     }
 

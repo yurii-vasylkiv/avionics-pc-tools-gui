@@ -5,7 +5,6 @@
 
 #include <QtWidgets/QPushButton>
 #include <QVBoxLayout>
-#include <QSerialPort>
 #include <iostream>
 #include <QTextEdit>
 #include <QSizePolicy>
@@ -47,6 +46,8 @@ QWidget(parent)
 
     connect(this, &TerminalWidget::onEnterPressed, [=](QKeyEvent * event)
     {
+        mPressedKeys -= Qt::Key_Return;
+
         auto text = mConsoleText->toPlainText();
         auto pos = text.lastIndexOf(mCommandDelimiter) + mCommandDelimiter.size();
         auto lastCommand = text.mid(pos);
@@ -120,6 +121,22 @@ QWidget(parent)
         mCustomSelectionIndices.second = pos;
         mCustomSelection.cursor.setPosition(pos, QTextCursor::KeepAnchor);
         mConsoleText->setExtraSelections({mCustomSelection});
+    });
+
+    connect(mConsoleText, &MyTextEdit::onScrolledUp, this, [=]
+    {
+        if( mPressedKeys.contains(Qt::Key_Control))
+        {
+            mConsoleText->zoomIn();
+        }
+    });
+
+    connect(mConsoleText, &MyTextEdit::onScrolledDown, this, [=]
+    {
+        if( mPressedKeys.contains(Qt::Key_Control))
+        {
+            mConsoleText->zoomOut();
+        }
     });
 
     installEventFilter(this);
@@ -217,11 +234,23 @@ bool TerminalWidget::eventFilter(QObject *receiver, QEvent *event)
     return QObject::eventFilter(receiver, event);
 }
 
+void MyTextEdit::wheelEvent(QWheelEvent *ev) {
+    if(ev->angleDelta().y() > 0) // up Wheel
+    {
+        emit onScrolledUp();
+    }
+    else if(ev->angleDelta().y() < 0) //down Wheel
+    {
+        emit onScrolledDown();
+    }
+
+    QTextEdit::wheelEvent(ev);
+}
 
 bool TerminalWidget::handleKeyPressEvent(QEvent *event)
 {
     QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-    mPressedKeys += keyEvent->key();
+    mPressedKeys += ((QKeyEvent*)event)->key();
 
     if( mPressedKeys.contains(Qt::Key_Control) && mPressedKeys.contains(Qt::Key_Shift) &&  mPressedKeys.contains(Qt::Key_C))
     {
@@ -455,4 +484,3 @@ void MyTextEdit::setBold(bool enable)
         setStyleSheet(mRegularStyle);
     }
 }
-

@@ -22,11 +22,14 @@ public:
 protected:
     void mouseMoveEvent(QMouseEvent *e) override;
 
+    void wheelEvent(QWheelEvent *e) override;
+
 Q_SIGNALS:
     void onTextSelectionChanged(int position = -1);
     void onTextSelectionBegin(int position = -1);
     void onTextSelectionEnd(int position = -1);
-
+    void onScrolledUp();
+    void onScrolledDown();
 private:
     bool isSelectionEnabled = false;
     QString mRegularStyle;
@@ -48,6 +51,8 @@ Q_SIGNALS:
 private:
     Q_SIGNAL void onEnterPressed(QKeyEvent * event);
     Q_SIGNAL void onCommandInput(QKeyEvent * event);
+    void onZoomInClicked();
+    void onZoomOutCLicked();
 private:
     static bool isKnownCommand(const QString & command);
     void handleKnownCommands(const QString & command);

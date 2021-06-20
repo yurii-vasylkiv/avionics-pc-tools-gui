@@ -13,11 +13,27 @@
 #include <QSet>
 #include <QtCore/QThreadPool>
 #include <QDebug>
-#include <QSerialPort>
-#include <QSerialPortInfo>
 #include <iostream>
 #include <QGridLayout>
 #include <QDebug>
+
+
+void Worker::run ( )
+{
+    isRunning = true;
+    while ( isRunning )
+    {
+        while(mSerialBackend.isOpen ())
+        {
+            while ( mSerialBackend.available () > 0 )
+            {
+                emit onDataReady( QString::fromStdString ( mSerialBackend.read() ));
+            }
+        }
+    }
+
+    emit finished();
+}
 
 SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(parent)
 {
@@ -44,29 +60,29 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
     left_root->addWidget(manufacturerLbl, 2, 0);
     left_root->addWidget(manufacturerVLbl, 2, 1);
 
-    auto serialNoLbl = new QLabel("Serial #:");
-    auto serialNoVLbl = new QLabel();
+//    auto serialNoLbl = new QLabel("Serial #:");
+//    auto serialNoVLbl = new QLabel();
 
-    left_root->addWidget(serialNoLbl, 3, 0);
-    left_root->addWidget(serialNoVLbl, 3 ,1);
+//    left_root->addWidget(serialNoLbl, 3, 0);
+//    left_root->addWidget(serialNoVLbl, 3 ,1);
 
-    auto locationLbl = new QLabel("System Location:");
-    auto locationVLbl = new QLabel();
+//    auto locationLbl = new QLabel("System Location:");
+//    auto locationVLbl = new QLabel();
 
-    left_root->addWidget(locationLbl, 4, 0);
-    left_root->addWidget(locationVLbl, 4 ,1);
+//    left_root->addWidget(locationLbl, 4, 0);
+//    left_root->addWidget(locationVLbl, 4 ,1);
 
-    auto VIDLbl = new QLabel("VID:");
+    auto VIDLbl = new QLabel("VID/PID/Manufacturer/Vendor:");
     auto VID_VLbl = new QLabel();
 
-    left_root->addWidget(VIDLbl, 5 , 0);
-    left_root->addWidget(VID_VLbl, 5, 1);
+//    left_root->addWidget(VIDLbl, 5 , 0);
+//    left_root->addWidget(VID_VLbl, 5, 1);
 
-    auto PIDLbl = new QLabel("PID:");
-    auto PID_VLbl = new QLabel();
+//    auto PIDLbl = new QLabel("PID:");
+//    auto PID_VLbl = new QLabel();
 
-    left_root->addWidget(PIDLbl, 6, 0);
-    left_root->addWidget(PID_VLbl, 6, 1);
+//    left_root->addWidget(PIDLbl, 6, 0);
+//    left_root->addWidget(PID_VLbl, 6, 1);
 
     left_root->setContentsMargins(10,10,10,10);
 
@@ -125,21 +141,23 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
 
     connect(portCmb, &QComboBox::currentTextChanged, [=](const QString & port)
     {
-        auto availablePorts = QSerialPortInfo::availablePorts();
-        QStringList list;
+        auto availablePorts = serial::list_ports();
 
-        for (const auto & availablePort : availablePorts)
+        auto iter = availablePorts.begin();
+
+        while( iter != availablePorts.end() )
         {
-            if (port == availablePort.portName())
+            std::string device = *iter++;
+
+            if (port == device.c_str())
             {
-                descriptionVLbl->setText(availablePort.description());
-                manufacturerVLbl->setText(availablePort.manufacturer());
-                serialNoVLbl->setText(availablePort.serialNumber());
-                locationVLbl->setText(availablePort.systemLocation());
-                VID_VLbl->setText(availablePort.vendorIdentifier() ? QString::number(availablePort.vendorIdentifier(), 16) : "" );
-                PID_VLbl->setText(availablePort.productIdentifier() ? QString::number(availablePort.productIdentifier(), 16) : "");
+                descriptionVLbl->setText("N/A");
+                manufacturerVLbl->setText("N/A");
+                VID_VLbl->setText("N/A");
                 break;
             }
+
+
         }
     });
 
@@ -157,77 +175,133 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
     {
         if(!mSerialBackend.isOpen())
         {
-            mSerialBackend.setBaudRate(baudRateCmb->currentText().toInt(), QSerialPort::Direction::AllDirections);
+            switch (baudRateCmb->currentIndex())
+            {
+                case 0:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_0 );
+                    break;
+                case 1:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_50 );
+                    break;
+                case 2:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_100 );
+                    break;
+                case 3:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_110 );
+                    break;
+                case 4:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_134 );
+                    break;
+                case 5:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_150 );
+                    break;
+                case 6:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_200 );
+                    break;
+                case 7:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_300 );
+                    break;
+                case 8:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_600 );
+                    break;
+                case 9:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_1200 );
+                    break;
+                case 10:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_1800 );
+                    break;
+                case 11:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_2400 );
+                    break;
+                case 12:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_4800 );
+                    break;
+                case 13:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_9600 );
+                    break;
+                case 14:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_19200 );
+                    break;
+                case 15:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_38400 );
+                    break;
+                case 16:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_115200 );
+                    break;
+                case 17:
+                    mSerialBackend.setBaudRate ( serial::baudrate_t::baudrate_4800 );
+                    break;
+                default:
+                    break;
+            }
+
+
             switch (bitsCmb->currentIndex())
             {
                 case 0:
-                    mSerialBackend.setDataBits(QSerialPort::DataBits::Data5);
+                    mSerialBackend.setDataBits ( serial::bytesize_t::fivebits );
                     break;
                 case 1:
-                    mSerialBackend.setDataBits(QSerialPort::DataBits::Data6);
+                    mSerialBackend.setDataBits ( serial::bytesize_t::sixbits );
                     break;
                 case 2:
-                    mSerialBackend.setDataBits(QSerialPort::DataBits::Data7);
+                    mSerialBackend.setDataBits ( serial::bytesize_t::sevenbits );
                     break;
                 case 3:
-                    mSerialBackend.setDataBits(QSerialPort::DataBits::Data8);
+                    mSerialBackend.setDataBits ( serial::bytesize_t::eightbits );
                     break;
                 default:
-                    mSerialBackend.setDataBits(QSerialPort::DataBits::UnknownDataBits);
                     break;
             }
 
             switch (stopBitsCmb->currentIndex())
             {
                 case 0:
-                    mSerialBackend.setStopBits(QSerialPort::StopBits::OneStop);
+                    mSerialBackend.setStopBits ( serial::stopbits_t ::stopbits_one );
                     break;
                 case 1:
-                    mSerialBackend.setStopBits(QSerialPort::StopBits::OneAndHalfStop);
+                    mSerialBackend.setStopBits ( serial::stopbits_t::stopbits_one_point_five );
                     break;
                 case 2:
-                    mSerialBackend.setStopBits(QSerialPort::StopBits::TwoStop);
+                    mSerialBackend.setStopBits(serial::stopbits_t::stopbits_two );
                     break;
                 default:
-                    mSerialBackend.setStopBits(QSerialPort::StopBits::UnknownStopBits);
                     break;
             }
 
             switch (parityCmb->currentIndex())
             {
                 case 0:
-                    mSerialBackend.setParity(QSerialPort::NoParity);
+                    mSerialBackend.setParity(serial::parity_t::parity_none );
                     break;
                 case 1:
-                    mSerialBackend.setParity(QSerialPort::EvenParity);
+                    mSerialBackend.setParity(serial::parity_t::parity_even );
                     break;
                 case 2:
-                    mSerialBackend.setParity(QSerialPort::OddParity);
+                    mSerialBackend.setParity(serial::parity_t::parity_odd );
                     break;
                 case 3:
-                    mSerialBackend.setParity(QSerialPort::SpaceParity);
+                    mSerialBackend.setParity(serial::parity_t::parity_space );
                     break;
                 case 4:
-                    mSerialBackend.setParity(QSerialPort::MarkParity);
+                    mSerialBackend.setParity(serial::parity_t::parity_mark );
                     break;
                 default:
-                    mSerialBackend.setParity(QSerialPort::Parity::UnknownParity);
                     break;
             }
 
             switch (flowControlCmb->currentIndex())
             {
                 case 0:
-                    mSerialBackend.setFlowControl(QSerialPort::FlowControl::NoFlowControl);
+                    mSerialBackend.setFlowControl ( serial::flowcontrol_t::flowcontrol_none );
                     break;
                 case 1:
-                    mSerialBackend.setFlowControl(QSerialPort::FlowControl::HardwareControl);
+                    mSerialBackend.setFlowControl ( serial::flowcontrol_t::flowcontrol_hardware );
                     break;
                 case 2:
-                    mSerialBackend.setFlowControl(QSerialPort::FlowControl::SoftwareControl);
+                    mSerialBackend.setFlowControl ( serial::flowcontrol_t::flowcontrol_software );
                     break;
                 default:
-                    mSerialBackend.setFlowControl(QSerialPort::FlowControl::UnknownFlowControl);
                     break;
             }
         }
@@ -237,11 +311,12 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
     {
         if(!mSerialBackend.isOpen())
         {
-            mSerialBackend.setPortName(portCmb->currentText());
+            mSerialBackend.setPortName(portCmb->currentText().toStdString());
 
             configurePorts();
 
-            if (mSerialBackend.open(QIODevice::ReadWrite))
+            mSerialBackend.open();
+            if (mSerialBackend.isOpen())
             {
                 connectButton->setText("DISCONNECT");
                 enablePortConfigs(false);
@@ -258,32 +333,16 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
         }
     });
 
+    mWorker = new Worker ( mSerialBackend );
+    QThreadPool::globalInstance()->start ( mWorker );
 
-    connect(&mSerialBackend, &QIODevice::readyRead, [=]
+    connect ( mWorker, &Worker::onDataReady, [=] ( const QString & data )
     {
-        while(mSerialBackend.canReadLine())
-        {
-            auto line = mSerialBackend.readLine().toStdString();
-            mBuffer += line;
-        }
+        emit onDataReceived(QByteArray::fromStdString(data.toStdString()));
     });
 
-    QThreadPool::globalInstance()->start([=]
-    {
-        mIsBufferConsumerRunning = true;
-        while(mIsBufferConsumerRunning)
-        {
-            QThread::sleep(1);
-            if(!mBuffer.empty())
-            {
-                emit onDataReceived(QByteArray::fromStdString(mBuffer));
-                mBuffer.clear();
-            }
-        }
-    });
-
-    for (auto const & mother : QSerialPortInfo::availablePorts())
-        portCmb->addItem(mother.portName());
+    for (auto const & port : serial::list_ports())
+        portCmb->addItem(QString::fromStdString ( port ) );
 
     baudRateCmb->addItems({"75", "110", "134", "150", "300", "600", "1200", "1800", "2400", "4800", "7200", "9600", "14400", "19200", "38400", "57600", "115200", "128000"});
     baudRateCmb->setCurrentIndex(16);
@@ -299,24 +358,13 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
 
     flowControlCmb->addItems({"None", "Hardware", "Software"});
     flowControlCmb->setCurrentIndex(0);
-
-
-
-
-
 }
 
 void SerialPortSelectorWidget::writeData(const QByteArray &data)
 {
     if(isSerialPortOpen())
     {
-        for (auto i = 0 ; i < data.size(); i++)
-        {
-            std::string sym(1, data[i]);
-            mSerialBackend.write(sym.c_str());
-            QThread::msleep(1);
-        }
-        mSerialBackend.write("\r");
+        mSerialBackend.write(data.toStdString() + "\r");
         mSerialBackend.flush();
     }
     else
@@ -327,7 +375,7 @@ void SerialPortSelectorWidget::writeData(const QByteArray &data)
 
 SerialPortSelectorWidget::~SerialPortSelectorWidget()
 {
-    mIsBufferConsumerRunning = false;
+    mWorker->stop ();
 }
 
 bool SerialPortSelectorWidget::isSerialPortOpen() const
