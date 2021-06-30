@@ -12,13 +12,15 @@
 #include "widgets/SerialPortSelectorWidget.h"
 #include "widgets/DebuggingToolsWidget.h"
 #include "widgets/FlightEmulationWidget.h"
+#include "widgets/OnBoardSensorsTestWidget.h"
 
 MainWindow::MainWindow()
 {
     setWindowTitle("UMSATS Avionics Flight-Computer GUI Controller");
 
-    auto terminal = new TerminalWidget();
-    auto emulator = new FlightEmulationWidget();
+    auto sensor_interface = new OnBoardSensorsTestWidget();
+    auto terminal         = new TerminalWidget();
+    auto emulator         = new FlightEmulationWidget();
 
     auto confWidget = new QWidget;
     auto confRoot = new QVBoxLayout;
@@ -27,6 +29,7 @@ MainWindow::MainWindow()
     auto debuggingTools = new DebuggingToolsWidget();
     confRoot->addWidget(serialPortConf);
     confRoot->addWidget(debuggingTools);
+    confRoot->addWidget(sensor_interface);
     confRoot->addWidget(emulator);
 
     auto terminalDock = new QDockWidget(this);
@@ -43,8 +46,9 @@ MainWindow::MainWindow()
 
     connect(serialPortConf, &SerialPortSelectorWidget::onDataReceived, [=](QByteArray data, bool isError)
     {
-        emit terminal->onBeginResponse(data, isError);
-        emit terminal->onEndResponse(true);
+         emit terminal->onBeginResponse(data, isError);
+         emit terminal->onEndResponse(true);
+        // sensor_interface->parseSensorDataPackage(data);
     });
 
     connect(terminal, &TerminalWidget::onRequest, [=](const QString & data)

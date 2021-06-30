@@ -107,7 +107,7 @@ namespace serial
         bool write ( const std::string & data );
 
         bool write ( uint8_t * data, unsigned length, unsigned * bytes_written );
-        std::string read ( );
+        int readAll ( uint8_t * buffer );
 
         void setBaudRate ( baudrate_t baudRate );
 

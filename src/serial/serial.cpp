@@ -116,7 +116,7 @@ bool serial::Serial::write ( uint8_t * data, unsigned length, unsigned * bytes_w
     return c_serial_write_data ( mPort, data, length, bytes_written ) == 0;
 }
 
-std::string serial::Serial::read ( )
+int serial::Serial::readAll ( uint8_t * buffer )
 {
 //    uint8_t header [4];
 //    unsigned bytes_read;
@@ -147,18 +147,15 @@ std::string serial::Serial::read ( )
 
     unsigned bytes_read = 0;
     unsigned total_read = 0;
-    uint8_t buff [2048];
-    std::string data;
 
     while ( available() > 0 )
     {
-        if ( c_serial_read_data (mPort, buff, 2048, &bytes_read, mLines.get() ) != 0) {
+        if ( c_serial_read_data (mPort, &buffer [total_read], 2048, &bytes_read, mLines.get() ) != 0) {
             fprintf(stderr, "ERROR: can't get the body\n");
             return {};
         };
 
         total_read += bytes_read;
-        data.append(( char* ) buff, 0, bytes_read);
     }
 
 
@@ -169,7 +166,7 @@ std::string serial::Serial::read ( )
 //        return {};
 //    }
 
-    return data;
+    return total_read;
 }
 
 

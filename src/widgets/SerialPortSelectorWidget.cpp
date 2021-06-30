@@ -27,7 +27,9 @@ void Worker::run ( )
         {
             while ( mSerialBackend.available () > 0 )
             {
-                emit onDataReady( QString::fromStdString ( mSerialBackend.read() ));
+                auto bytes_read = mSerialBackend.readAll(mBuffer);
+                emit onDataReady(QByteArray::fromRawData((char*)mBuffer, bytes_read));
+                memset(mBuffer, 0, 2048);
             }
         }
     }
@@ -320,7 +322,7 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
             {
                 connectButton->setText("DISCONNECT");
                 enablePortConfigs(false);
-                emit onDataReceived(QByteArray::fromStdString("Info: Connected to \"" + portCmb->currentText().toStdString() + "\""), true);
+                // emit onDataReceived(QByteArray::fromStdString("Info: Connected to \"" + portCmb->currentText().toStdString() + "\""), true);
             }
         }
         else
@@ -330,7 +332,7 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
             {
                 connectButton->setText("CONNECT");
                 enablePortConfigs(true);
-                emit onDataReceived(QByteArray::fromStdString("Info: Disconnected from \"" + portCmb->currentText().toStdString() + "\""), true);
+                // emit onDataReceived(QByteArray::fromStdString("Info: Disconnected from \"" + portCmb->currentText().toStdString() + "\""), true);
             }
         }
     });
@@ -338,9 +340,9 @@ SerialPortSelectorWidget::SerialPortSelectorWidget(QWidget *parent): QGroupBox(p
     mWorker = new Worker ( mSerialBackend );
     QThreadPool::globalInstance()->start ( mWorker );
 
-    connect ( mWorker, &Worker::onDataReady, [=] ( const QString & data )
+    connect ( mWorker, &Worker::onDataReady, [=] ( const QByteArray & data )
     {
-        emit onDataReceived(QByteArray::fromStdString(data.toStdString()));
+        emit onDataReceived (data );
     });
 
     for (auto const & port : serial::list_ports())

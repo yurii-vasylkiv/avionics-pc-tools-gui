@@ -23,11 +23,11 @@ public:
     using QObject::QObject;
     Q_SLOT void stop() { isRunning = false; }
     Q_SIGNAL void finished();
-    Q_SIGNAL void onDataReady ( const QString & data );
+    Q_SIGNAL void onDataReady ( const QByteArray & data );
 private:
     bool isRunning;
     serial::Serial & mSerialBackend;
-    std::string mBuffer;
+    uint8_t mBuffer [2048];
 };
 
 
@@ -49,8 +49,6 @@ private:
     serial::Serial mSerialBackend;
     std::string mBuffer;
     Worker * mWorker;
-//    bool isDataReady;
-//    bool mIsBufferConsumerRunning = false;
 };
 
 
