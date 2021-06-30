@@ -221,12 +221,7 @@ void FlightEmulationWidget::detectFlightDataFile()
     {
         QTimer::singleShot(0, [=]
         {
-            QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
-            if( ! mySettings.value("mFlightDataFile").isNull ( ) )
-            {
-                mFlightDataFile->setPlaceholderText( mySettings.value ( "mFlightDataFile" ).toString () );
-            }
-            else
+            static auto perform_search = [=]
             {
                 mFlightDataFile->setPlaceholderText ( "Searching..." );
                 auto * finder = new QDirFinder ( this );
@@ -248,6 +243,22 @@ void FlightEmulationWidget::detectFlightDataFile()
                     QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
                     mySettings.setValue("mFlightDataFile", result);
                 } );
+            };
+
+            QSettings mySettings (QSettings::IniFormat, QSettings::UserScope, "UMSATS", "AVIONICS_V3");
+            if( ! mySettings.value("mFlightDataFile").isNull ( ) )
+            {
+                QDir dir(mySettings.value("mFlightDataFile").toString());
+                if (dir.exists()) {
+                    mFlightDataFile->setPlaceholderText(mySettings.value("mFlightDataFile").toString());
+                    mEmulateBtn->setEnabled(true);
+                } else {
+                    perform_search();
+                }
+            }
+            else
+            {
+                perform_search();
             }
         });
     }
