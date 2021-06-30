@@ -25,7 +25,6 @@ add_executable(${PROJECT_NAME}
         src/widgets/SerialPortSelectorWidget.cpp
         src/widgets/DebuggingToolsWidget.cpp
         src/widgets/FlightEmulationWidget.cpp
-        src/widgets/OnBoardSensorsTestWidget.cpp
         src/utilities/QDirFinder.cpp
         src/emulation/DataFeeder.cpp
         src/emulation/IRunnable.hpp
@@ -33,11 +32,9 @@ add_executable(${PROJECT_NAME}
         src/emulation/EmulationController.cpp
         src/dialogs/FlightDataFormatDialog.cpp
         src/utilities/ChartDialogUtils.cpp
-        src/utilities/ChartDialogUtils.h
-        src/utilities/common.h)
+        src/utilities/ChartDialogUtils.h)
 
 ## Sources
 add_subdirectory(src/serial)
-add_subdirectory(src/widgets/graphics/cube)
-target_link_libraries(${PROJECT_NAME} PUBLIC serial Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts cube)
+target_link_libraries(${PROJECT_NAME} PUBLIC serial Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
 
