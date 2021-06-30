@@ -23,6 +23,7 @@ add_executable(${PROJECT_NAME}
         src/windows/MainWindow.cpp
         src/widgets/TerminalWidget.cpp
         src/widgets/SerialPortSelectorWidget.cpp
+        src/widgets/OnBoardSensorsTestWidget.cpp
         src/widgets/DebuggingToolsWidget.cpp
         src/widgets/FlightEmulationWidget.cpp
         src/utilities/QDirFinder.cpp
@@ -34,9 +35,11 @@ add_executable(${PROJECT_NAME}
 #        src/resources/resources.qrc
         src/utilities/ChartDialogUtils.cpp
         src/utilities/ChartDialogUtils.h
+        src/utilities/common.h
         )
 
 ## Sources
 add_subdirectory(src/serial)
-target_link_libraries(${PROJECT_NAME} PUBLIC serial Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts)
+add_subdirectory(src/widgets/graphics/cube)
+target_link_libraries(${PROJECT_NAME} PUBLIC serial Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Charts cube)
 
